@@ -477,3 +477,72 @@ class Enemy(pygame.sprite.Sprite):
         self.rect = self.image.get_rect(center=(random.randint(820,900), random.randint(0,600)))
         self.speed = random.randint(5,20)
 ```
+
+Now we have the same game we had before but nicely skinned with some cool images. I think it's missing something though. Lets add a few clouds going past to give the impression of a jet flying through the sky. To do this we are going to use the exact same principals we used before. First we will create the cloud object with an image of a cloud and an update method that continuously moves the cloud toward the left side of the screen. Then we will create a custom event to spawn our clouds at a set interval (we will also add the spawned clouds to the all_sprites group). Here's what our cloud object will look like:
+
+```python
+class Cloud(pygame.sprite.Sprite):
+    def __init__(self):
+        super(Cloud, self).__init__()
+        self.image = pygame.image.load('cloud.png').convert()
+        self.image.set_colorkey((0,0,0), RLEACCEL)
+        self.rect = self.image.get_rect(center=(random.randint(820,900), random.randint(0,600)))
+
+    def update(self):
+        self.rect.move_ip(-5, 0)
+        if self.rect.right < 0:
+            self.kill()
+```
+
+That should all look familiar, as should this event creation code which we will put right below our enemy creation event:
+
+```python
+ADDCLOUD = pygame.USEREVENT+2
+pygame.time.set_timer(ADDCLOUD, 1000)
+```
+
+And lets create a new sprite group for them:
+
+```python
+clouds = pygame.sprite.Group()
+```
+
+Now in our main game loop, where we step through our event queue, we need to start listening for our ADDCLOUD event. This:
+
+```python
+for event in pygame.event.get():
+    if event.type == KEYDOWN:
+        if event.key == K_ESCAPE:
+            running = False
+    elif event.type == QUIT:
+        running = False
+    elif event.type == ADDENEMY:
+        new_enemy = Enemy()
+        enemies.add(new_enemy)
+        all_sprites.add(new_enemy)
+```
+
+Will become this:
+
+```python
+for event in pygame.event.get():
+    if event.type == KEYDOWN:
+        if event.key == K_ESCAPE:
+            running = False
+    elif event.type == QUIT:
+        running = False
+    elif event.type == ADDENEMY:
+        new_enemy = Enemy()
+        enemies.add(new_enemy)
+        all_sprites.add(new_enemy)
+    elif event.type == ADDCLOUD:
+        new_cloud = Cloud()
+        all_sprites.add(new_cloud)
+        clouds.add(new_cloud)
+```
+
+We're going to add the clouds to the all_sprites group as well as the new clouds group. We add them to both because we're using all_sprites to render, and clouds to call their update function. You might ask why we don't add them to the existing enemies group, after all we're calling nearly identical update functions on them. The reason is, we don't want to test the player for collisions with the clouds. Our jet needs to pass cleanly through all the clouds. Now all that's left is calling our clouds group update function. That's it!
+
+The complete code is available the github repo.
+
+I hope you enjoyed the tutorial or at least found it helpful :)
